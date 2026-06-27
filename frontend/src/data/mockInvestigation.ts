@@ -529,6 +529,32 @@ const benignReport: StructuredReport = {
     "# Báo cáo xác minh VYVY\n\n## Kết luận\nNội dung có vẻ rủi ro thấp trong phạm vi dữ liệu mock.\n",
 };
 
+function exampleInput(
+  id: string,
+  label: string,
+  description: string,
+  text: string,
+  expectedRiskBand: DemoCase["expectedRiskBand"],
+  template: Pick<DemoCase, "defaultState" | "fastWarning" | "investigation">,
+): DemoCase {
+  return {
+    id,
+    label,
+    description,
+    text,
+    expectedRiskBand,
+    defaultState: template.defaultState,
+    fastWarning: {
+      ...template.fastWarning,
+      request_id: `demo-fast-${id}`,
+    },
+    investigation: {
+      ...template.investigation,
+      investigation_id: `demo-${id}`,
+    },
+  };
+}
+
 export const demoCases: DemoCase[] = [
   {
     id: "bank-otp-phishing",
@@ -884,6 +910,399 @@ export const demoCases: DemoCase[] = [
       },
     },
   },
+  exampleInput(
+    "telegram-tiktok-vip",
+    "Like TikTok — phí kích hoạt VIP",
+    "Lừa đảo việc làm online trên Telegram: trả thưởng ban đầu, sau đó yêu cầu chuyển trước để nhận nhiệm vụ VIP.",
+    [
+      "Em được một người trên Telegram mời làm việc online.",
+      "Công việc là like video TikTok và chụp màn hình gửi lại.",
+      "Ngày đầu em kiếm được 300.000 đồng.",
+      "Sau đó họ bảo muốn nhận nhiệm vụ VIP thì phải chuyển trước 2 triệu để kích hoạt tài khoản.",
+      "Họ nói sẽ hoàn lại tiền sau 15 phút.",
+    ].join("\n"),
+    { fast: "suspicious", full: "high_risk" },
+    {
+      defaultState: "completed",
+      fastWarning: {
+        request_id: "placeholder",
+        risk_band: "suspicious",
+        score: 78,
+        triggered_flags: [
+          {
+            code: "UPFRONT_FEE",
+            label: "Yêu cầu chuyển tiền trước",
+            severity: "high",
+            evidence_span: "chuyển trước 2 triệu",
+          },
+          {
+            code: "URGENT_MONEY_TRANSFER",
+            label: "Hứa hoàn tiền trong thời gian rất ngắn",
+            severity: "high",
+            evidence_span: "hoàn lại tiền sau 15 phút",
+          },
+        ],
+        message: "Nội dung có dấu hiệu lừa đảo việc làm online yêu cầu nộp tiền trước.",
+        immediate_actions: [
+          "Không chuyển thêm tiền để kích hoạt VIP hoặc nâng cấp tài khoản.",
+          "Dừng làm nhiệm vụ và không tiếp tục liên lạc nếu bị ép chuyển khoản.",
+        ],
+        latency_ms: 92,
+      },
+      investigation: {
+        investigation_id: "placeholder",
+        status: "completed",
+        evidence_status: {
+          provider: "mock",
+          mode: "mock",
+          operation_status: "completed",
+          success: true,
+          queries_attempted: 1,
+          results_returned: 1,
+          errors: [],
+        },
+        evidence: recruitmentEvidence,
+        experts: [
+          expert("financial", 74, "high_risk", ["mock_recruitment_fee_pattern"], [
+            "Mô-típ trả thưởng nhỏ ban đầu rồi yêu cầu nộp tiền lớn hơn là dấu hiệu đáng ngờ.",
+          ]),
+          expert("legal_risk", 58, "suspicious", [], [
+            "Thiếu thông tin pháp nhân và hợp đồng lao động rõ ràng.",
+          ]),
+          expert("cyber", 32, "uncertain", [], ["Chưa thấy yêu cầu OTP hay link đăng nhập."]),
+          expert("osint", 66, "suspicious", ["mock_recruitment_fee_pattern"], [
+            "Fixture mock cho thấy mô-típ việc online yêu cầu phí kích hoạt tương tự.",
+          ]),
+        ],
+        behavioral_analysis: partialBehavioral,
+        verification: {
+          risk_score: 76.2,
+          risk_label: "high_risk",
+          confidence_score: 64.5,
+        },
+        safety_advice: {
+          actions: [
+            "Không chuyển thêm tiền để kích hoạt VIP.",
+            "Chụp lại hội thoại và báo cho ngân hàng nếu đã chuyển tiền.",
+          ],
+          warnings: [],
+          note: "Không phải tư vấn pháp lý; hãy xác minh độc lập.",
+        },
+        report: {
+          ...partialReport,
+          risk_score: 76.2,
+          risk_label: "high_risk",
+          conclusion:
+            "Nội dung có dấu hiệu nguy cơ cao vì kết hợp việc làm online, thưởng ban đầu và yêu cầu chuyển tiền trước.",
+        },
+        warnings: [],
+        timings_ms: { fast_check: 92, evidence_search: 310, experts: 700, total: 1200 },
+      },
+    },
+  ),
+  exampleInput(
+    "coin-investment-ponzi",
+    "Đầu tư coin lợi nhuận 3%/ngày",
+    "Lời mời đầu tư tiền ảo với lợi nhuận cao bất thường và hoa hồng giới thiệu — dấu hiệu mô hình Ponzi.",
+    [
+      "Một người bạn giới thiệu em đầu tư vào dự án coin mới.",
+      "Họ cam kết lợi nhuận 3% mỗi ngày.",
+      "Nếu giới thiệu thêm người tham gia em sẽ được hoa hồng.",
+      "Hiện đã có hơn 5.000 người tham gia.",
+    ].join("\n"),
+    { fast: "suspicious", full: "high_risk" },
+    {
+      defaultState: "completed",
+      fastWarning: {
+        request_id: "placeholder",
+        risk_band: "suspicious",
+        score: 81,
+        triggered_flags: [
+          {
+            code: "UNREALISTIC_RETURN",
+            label: "Lợi nhuận cao bất thường",
+            severity: "high",
+            evidence_span: "lợi nhuận 3% mỗi ngày",
+          },
+          {
+            code: "REFERRAL_PRESSURE",
+            label: "Khuyến khích giới thiệu thêm người",
+            severity: "medium",
+            evidence_span: "giới thiệu thêm người tham gia",
+          },
+        ],
+        message: "Nội dung có dấu hiệu đầu tư lợi nhuận cao bất thường và mô hình giới thiệu.",
+        immediate_actions: [
+          "Không chuyển tiền vào dự án chưa xác minh được giấy phép và pháp nhân.",
+          "Tra cứu độc lập tên dự án trước khi tham gia.",
+        ],
+        latency_ms: 88,
+      },
+      investigation: {
+        investigation_id: "placeholder",
+        status: "completed",
+        evidence_status: {
+          provider: "mock",
+          mode: "mock",
+          operation_status: "completed",
+          success: true,
+          queries_attempted: 1,
+          results_returned: 1,
+          errors: [],
+        },
+        evidence: recruitmentEvidence,
+        experts: [
+          expert("financial", 88, "high_risk", [], [
+            "Lợi nhuận 3%/ngày vượt xa mức hợp lý của đầu tư thông thường.",
+          ]),
+          expert("legal_risk", 62, "suspicious", [], [
+            "Chưa có thông tin giấy phép hoạt động hoặc cơ quan quản lý.",
+          ]),
+          expert("cyber", 28, "uncertain", [], ["Chưa thấy yêu cầu thông tin đăng nhập trực tiếp."]),
+          expert("osint", 70, "suspicious", [], [
+            "Con số 5.000 người tham gia chưa được xác minh độc lập.",
+          ]),
+        ],
+        behavioral_analysis: partialBehavioral,
+        verification: {
+          risk_score: 79.5,
+          risk_label: "high_risk",
+          confidence_score: 61.0,
+        },
+        safety_advice: {
+          actions: [
+            "Không đầu tư thêm vào dự án chưa xác minh.",
+            "Cảnh báo người thân nếu bạn giới thiệu tiếp tục tham gia.",
+          ],
+          warnings: [],
+          note: "Không phải tư vấn pháp lý; hãy xác minh độc lập.",
+        },
+        report: {
+          ...partialReport,
+          risk_score: 79.5,
+          risk_label: "high_risk",
+          conclusion:
+            "Nội dung có dấu hiệu nguy cơ cao vì cam kết lợi nhuận cao bất thường và mô hình giới thiệu.",
+        },
+        warnings: [],
+        timings_ms: { fast_check: 88, evidence_search: 320, experts: 710, total: 1220 },
+      },
+    },
+  ),
+  exampleInput(
+    "romance-customs-gift",
+    "Người yêu online + phí hải quan nhận quà",
+    "Lừa đảo tình cảm kết hợp mạo danh hải quan yêu cầu đóng phí để nhận quà từ người nước ngoài.",
+    [
+      "Em quen một người nước ngoài trên Facebook được 2 tuần.",
+      "Người đó nói yêu em và muốn gửi quà về Việt Nam.",
+      "Sau đó có người tự nhận là nhân viên hải quan gọi điện bảo em đóng 15 triệu tiền thuế để nhận quà.",
+    ].join("\n"),
+    { fast: "critical", full: "high_risk" },
+    {
+      defaultState: "completed",
+      fastWarning: {
+        request_id: "placeholder",
+        risk_band: "critical",
+        score: 94,
+        triggered_flags: [
+          {
+            code: "URGENT_MONEY_TRANSFER",
+            label: "Yêu cầu chuyển tiền để nhận quà",
+            severity: "critical",
+            evidence_span: "đóng 15 triệu tiền thuế",
+          },
+          {
+            code: "FAKE_AUTHORITY",
+            label: "Mạo danh cơ quan thẩm quyền",
+            severity: "high",
+            evidence_span: "nhân viên hải quan",
+          },
+        ],
+        message: "Nội dung có dấu hiệu lừa đảo tình cảm kết hợp yêu cầu nộp phí giả mạo.",
+        immediate_actions: [
+          "Không chuyển tiền phí thuế hay phí hải quan qua điện thoại.",
+          "Liên hệ cơ quan hải quan qua kênh chính thức nếu cần xác minh.",
+        ],
+        latency_ms: 98,
+      },
+      investigation: {
+        investigation_id: "placeholder",
+        status: "completed",
+        evidence_status: {
+          provider: "mock",
+          mode: "mock",
+          operation_status: "completed",
+          success: true,
+          queries_attempted: 1,
+          results_returned: 2,
+          errors: [],
+        },
+        evidence: authorityEvidence,
+        experts: authorityExperts,
+        behavioral_analysis: authorityBehavioral,
+        verification: {
+          risk_score: authorityReport.risk_score,
+          risk_label: authorityReport.risk_label,
+          confidence_score: authorityReport.confidence_score,
+        },
+        safety_advice: {
+          actions: authorityReport.actions,
+          warnings: [],
+          note: "Không phải tư vấn pháp lý; hãy xác minh độc lập.",
+        },
+        report: authorityReport,
+        warnings: [],
+        timings_ms: { fast_check: 98, evidence_search: 340, experts: 730, total: 1280 },
+      },
+    },
+  ),
+  exampleInput(
+    "cheap-iphone-prepay",
+    "iPhone giá rẻ — chuyển khoản trước",
+    "Fanpage bán điện thoại giá quá thấp, yêu cầu chuyển khoản toàn bộ và không hỗ trợ COD.",
+    [
+      "Em thấy một fanpage bán iPhone 16 Pro Max giá 12 triệu.",
+      "Shop yêu cầu chuyển khoản trước toàn bộ.",
+      "Họ nói vì giá khuyến mãi nên không hỗ trợ COD.",
+    ].join("\n"),
+    { fast: "suspicious", full: "suspicious" },
+    {
+      defaultState: "partial",
+      fastWarning: {
+        request_id: "placeholder",
+        risk_band: "suspicious",
+        score: 74,
+        triggered_flags: [
+          {
+            code: "UPFRONT_FEE",
+            label: "Yêu cầu thanh toán trước toàn bộ",
+            severity: "high",
+            evidence_span: "chuyển khoản trước toàn bộ",
+          },
+          {
+            code: "UNREALISTIC_OFFER",
+            label: "Giá bán bất thường so với thị trường",
+            severity: "high",
+            evidence_span: "iPhone 16 Pro Max giá 12 triệu",
+          },
+        ],
+        message: "Nội dung có dấu hiệu bán hàng giá quá rẻ và yêu cầu chuyển khoản trước.",
+        immediate_actions: [
+          "Không chuyển khoản trước cho shop chưa xác minh.",
+          "Ưu tiên mua qua sàn hoặc cửa hàng có địa chỉ rõ ràng.",
+        ],
+        latency_ms: 85,
+      },
+      investigation: {
+        investigation_id: "placeholder",
+        status: "partial",
+        evidence_status: {
+          provider: "mock",
+          mode: "mock",
+          operation_status: "partial",
+          success: true,
+          queries_attempted: 1,
+          results_returned: 1,
+          errors: [],
+        },
+        evidence: marketplaceEvidence,
+        experts: marketplaceExperts,
+        behavioral_analysis: marketplaceBehavioral,
+        verification: {
+          risk_score: marketplaceReport.risk_score,
+          risk_label: marketplaceReport.risk_label,
+          confidence_score: marketplaceReport.confidence_score,
+        },
+        safety_advice: {
+          actions: marketplaceReport.actions,
+          warnings: ["Chưa xác minh được danh tính fanpage/shop."],
+          note: "Không phải tư vấn pháp lý; hãy xác minh độc lập.",
+        },
+        report: marketplaceReport,
+        warnings: ["Chưa xác minh được danh tính fanpage/shop."],
+        timings_ms: { fast_check: 85, evidence_search: 880, experts: 680, total: 1550 },
+      },
+    },
+  ),
+  exampleInput(
+    "zalo-investment-withdrawal-fee",
+    "Đầu tư Zalo — phí xác minh để rút tiền",
+    "Lừa đảo đầu tư: số dư tăng ảo trên app, nhưng yêu cầu nộp thêm phí mới được rút.",
+    [
+      "Chị gái em được một người trên Zalo giới thiệu đầu tư.",
+      "Bỏ vào 50 triệu.",
+      "Sau 2 tuần tài khoản hiển thị thành 120 triệu.",
+      "Nhưng muốn rút tiền thì phải nộp thêm 15% phí xác minh.",
+    ].join("\n"),
+    { fast: "critical", full: "high_risk" },
+    {
+      defaultState: "completed",
+      fastWarning: {
+        request_id: "placeholder",
+        risk_band: "critical",
+        score: 96,
+        triggered_flags: [
+          {
+            code: "UPFRONT_FEE",
+            label: "Yêu cầu phí trước khi rút tiền",
+            severity: "critical",
+            evidence_span: "nộp thêm 15% phí xác minh",
+          },
+          {
+            code: "UNREALISTIC_RETURN",
+            label: "Lợi nhuận tăng bất thường",
+            severity: "high",
+            evidence_span: "50 triệu thành 120 triệu",
+          },
+        ],
+        message: "Nội dung có dấu hiệu lừa đảo đầu tư: số dư ảo và yêu cầu nộp phí để rút.",
+        immediate_actions: [
+          "Không nộp thêm phí xác minh hoặc phí rút tiền.",
+          "Liên hệ ngân hàng ngay nếu đã chuyển tiền đầu tư.",
+        ],
+        latency_ms: 102,
+      },
+      investigation: {
+        investigation_id: "placeholder",
+        status: "completed",
+        evidence_status: {
+          provider: "mock",
+          mode: "mock",
+          operation_status: "completed",
+          success: true,
+          queries_attempted: 1,
+          results_returned: 2,
+          errors: [],
+        },
+        evidence: authorityEvidence,
+        experts: authorityExperts,
+        behavioral_analysis: authorityBehavioral,
+        verification: {
+          risk_score: 91.8,
+          risk_label: "high_risk",
+          confidence_score: 72.4,
+        },
+        safety_advice: {
+          actions: [
+            "Không nộp thêm phí xác minh để rút tiền.",
+            "Lưu lại giao dịch và báo ngân hàng nếu đã chuyển tiền.",
+            "Trao đổi với người thân trước khi hành động tiếp.",
+          ],
+          warnings: [],
+          note: "Không phải tư vấn pháp lý; hãy xác minh độc lập.",
+        },
+        report: {
+          ...authorityReport,
+          risk_score: 91.8,
+          conclusion:
+            "Nội dung có dấu hiệu nguy cơ cao vì lợi nhuận ảo trên app và yêu cầu nộp phí trước khi rút.",
+        },
+        warnings: [],
+        timings_ms: { fast_check: 102, evidence_search: 350, experts: 750, total: 1310 },
+      },
+    },
+  ),
 ];
 
 export const progressStages = [

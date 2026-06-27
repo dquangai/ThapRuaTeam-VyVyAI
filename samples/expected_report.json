@@ -1,0 +1,30 @@
+{
+  "investigation_id": "demo-otp-001",
+  "status": "completed",
+  "verification": {
+    "risk_score": 94.0,
+    "risk_label": "critical",
+    "confidence_score": 88.0
+  },
+  "report": {
+    "headline": "Nội dung có nguy cơ chiếm đoạt tài khoản rất cao",
+    "summary": "Tin nhắn yêu cầu OTP, tạo áp lực thời gian và đe dọa khóa tài khoản.",
+    "top_reasons": [
+      "Yêu cầu cung cấp OTP",
+      "Tạo áp lực trong 10 phút",
+      "Mạo danh bộ phận hỗ trợ"
+    ],
+    "recommended_actions": [
+      "Không cung cấp OTP hoặc mật khẩu.",
+      "Không bấm đường dẫn trong tin nhắn.",
+      "Liên hệ ngân hàng qua ứng dụng hoặc số chính thức."
+    ],
+    "limitations": [
+      "Kết quả là đánh giá rủi ro, không phải kết luận pháp lý."
+    ]
+  },
+  "warnings": [],
+  "timings_ms": {
+    "total": 4200
+  }
+}

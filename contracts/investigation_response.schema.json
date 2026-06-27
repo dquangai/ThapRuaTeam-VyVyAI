@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InvestigationResponse",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "investigation_id",
+    "status",
+    "verification",
+    "report",
+    "warnings",
+    "timings_ms"
+  ],
+  "properties": {
+    "investigation_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "partial",
+        "failed"
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "title",
+          "url",
+          "source_name",
+          "snippet",
+          "retrieved_at",
+          "credibility_score",
+          "relevance_score"
+        ],
+        "properties": {
+          "evidence_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "source_name": {
+            "type": "string"
+          },
+          "published_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "snippet": {
+            "type": "string"
+          },
+          "retrieved_at": {
+            "type": "string"
+          },
+          "credibility_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "relevance_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          }
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": [
+        "risk_score",
+        "risk_label",
+        "confidence_score"
+      ],
+      "properties": {
+        "risk_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "risk_label": {
+          "type": "string",
+          "enum": [
+            "low",
+            "uncertain",
+            "suspicious",
+            "high_risk",
+            "critical"
+          ]
+        },
+        "confidence_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "report": {
+      "type": "object"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "timings_ms": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InvestigationRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "text"
+  ],
+  "properties": {
+    "text": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 12000
+    },
+    "locale": {
+      "type": "string",
+      "default": "vi",
+      "enum": [
+        "vi",
+        "en"
+      ]
+    },
+    "use_web_search": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

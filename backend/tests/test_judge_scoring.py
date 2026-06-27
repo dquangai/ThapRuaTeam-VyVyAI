@@ -268,6 +268,62 @@ def test_partial_result_search_failure_lowers_confidence_but_keeps_scoring() -> 
     assert "No official or high-quality source: -10" in result.confidence_penalties
 
 
+def test_text_only_investment_promise_raises_risk_floor_without_external_evidence() -> None:
+    text = (
+        "Một người bạn giới thiệu em đầu tư vào dự án coin mới. "
+        "Họ cam kết lợi nhuận 3% mỗi ngày. Nếu giới thiệu thêm người tham gia "
+        "em sẽ được hoa hồng."
+    )
+    assessments = [
+        expert(
+            ExpertRole.FINANCIAL,
+            score=20,
+            verdict=ExpertVerdict.UNCERTAIN,
+            confidence=45,
+            reasons=[
+                ExpertReason(
+                    text="Nội dung có cam kết lợi nhuận cố định mỗi ngày.",
+                    basis=ReasonBasis.INPUT_TEXT,
+                    evidence_ids=[],
+                    input_text_span="cam kết lợi nhuận 3% mỗi ngày",
+                )
+            ],
+            missing=["Thiếu bằng chứng ngoài về dự án."],
+        ),
+        expert(
+            ExpertRole.OSINT,
+            score=20,
+            verdict=ExpertVerdict.UNCERTAIN,
+            confidence=45,
+            reasons=[
+                ExpertReason(
+                    text="Có dấu hiệu hoa hồng giới thiệu người tham gia.",
+                    basis=ReasonBasis.INPUT_TEXT,
+                    evidence_ids=[],
+                    input_text_span="giới thiệu thêm người tham gia",
+                )
+            ],
+            missing=["Thiếu đăng ký pháp lý hoặc nguồn chính thức."],
+        ),
+    ]
+    judge = judge_findings(text=text, evidence=[], expert_assessments=assessments)
+
+    result = score_verification(
+        judge=judge,
+        evidence=[],
+        expert_assessments=assessments,
+        behavioral_analysis=behavioral(score=35),
+        evidence_status=partial_evidence_status(),
+        text=text,
+    )
+
+    assert result.risk_components.context_risk >= 82
+    assert result.verification.risk_score >= 55
+    assert result.verification.risk_label is RiskLabel.SUSPICIOUS
+    assert result.verification.confidence_score < 50
+    assert "Search unavailable or partial: -20" in result.confidence_penalties
+
+
 def test_no_supported_findings_returns_low_risk_and_vague_input_penalty() -> None:
     judge = judge_findings(
         text="Không rõ nội dung.",

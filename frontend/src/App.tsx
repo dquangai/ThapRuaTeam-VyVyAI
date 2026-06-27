@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 
 import { ApiClientError, vyvyApiClient } from "./api/client";
+import { InvestigationChatPanel } from "./components/InvestigationChatPanel";
 import {
   demoCases,
   emptyFastWarning,
   errorFastWarning,
-  progressForState,
   progressStages,
   type DemoCase,
   type DemoViewState,
@@ -52,6 +52,9 @@ const behavioralLabels: Record<string, string> = {
 export default function App() {
   const [selectedCaseId, setSelectedCaseId] = useState("");
   const [inputText, setInputText] = useState("");
+  const [submittedText, setSubmittedText] = useState("");
+  const [submittedAt, setSubmittedAt] = useState<string | null>(null);
+  const [lastSubmittedText, setLastSubmittedText] = useState("");
   const [viewState, setViewState] = useState<DemoViewState>("empty");
   const [fastWarningResult, setFastWarningResult] = useState<FastWarning | null>(null);
   const [investigationResult, setInvestigationResult] = useState<InvestigationResponse | null>(null);
@@ -66,12 +69,11 @@ export default function App() {
   const investigation = investigationResult ?? activeCase.investigation;
   const fastWarning =
     fastWarningResult ?? (viewState === "loading" ? emptyFastWarning() : warningForState(viewState, activeCase));
-  const progress = progressForState(viewState);
+  const progress = progressForViewState(viewState, fastWarningResult !== null);
   const isReportVisible =
     investigationResult !== null && (viewState === "completed" || viewState === "partial");
   const isLoading = viewState === "loading";
   const isError = viewState === "error";
-  const characterCount = inputText.length;
 
   function clearResults() {
     setFastWarningResult(null);
@@ -80,8 +82,21 @@ export default function App() {
     setCopyStatus("");
   }
 
+  function resetConversation() {
+    setSelectedCaseId("");
+    setInputText("");
+    setSubmittedText("");
+    setSubmittedAt(null);
+    setLastSubmittedText("");
+    setViewState("empty");
+    clearResults();
+  }
+
   function handleExampleChange(caseId: string) {
     setSelectedCaseId(caseId);
+    setSubmittedText("");
+    setSubmittedAt(null);
+    setLastSubmittedText("");
     clearResults();
     if (!caseId) {
       setInputText("");
@@ -96,20 +111,39 @@ export default function App() {
     }
   }
 
-  async function handleAnalyze() {
+  function handleInputChange(value: string) {
+    setInputText(value);
+    if (viewState === "loading") {
+      return;
+    }
+    if (submittedText || fastWarningResult || investigationResult || errorMessage) {
+      setSubmittedText("");
+      setSubmittedAt(null);
+      setLastSubmittedText("");
+      clearResults();
+    }
+    setViewState(value.trim() ? "typing" : "empty");
+  }
+
+  async function runInvestigation(text: string, options: { refreshSubmittedMessage?: boolean } = {}) {
     clearResults();
-    const text = inputText.trim();
     if (text.length < 10) {
-      setErrorMessage("Noi dung can it nhat 10 ky tu.");
+      setErrorMessage("Nội dung cần ít nhất 10 ký tự.");
       setViewState("error");
       return;
     }
     if (text.length > 12_000) {
-      setErrorMessage("Noi dung vuot qua gioi han 12.000 ky tu.");
+      setErrorMessage("Nội dung vượt quá giới hạn 12.000 ký tự.");
       setViewState("error");
       return;
     }
 
+    if (options.refreshSubmittedMessage ?? true) {
+      setSubmittedText(text);
+      setSubmittedAt(currentTimeLabel());
+    }
+    setLastSubmittedText(text);
+    setInputText("");
     setViewState("loading");
     try {
       const request = { text, locale: "vi" as const, use_web_search: true };
@@ -131,17 +165,30 @@ export default function App() {
       setErrorMessage(
         error instanceof ApiClientError
           ? error.message
-          : "Khong the hoan tat phan tich. Vui long thu lai.",
+          : "Không thể hoàn tất phân tích. Vui lòng thử lại.",
       );
       setViewState("error");
     }
   }
 
-  function handleClear() {
-    setSelectedCaseId("");
-    setInputText("");
-    setViewState("empty");
-    clearResults();
+  async function handleAnalyze() {
+    await runInvestigation(inputText.trim());
+  }
+
+  async function handleRetry() {
+    const text = lastSubmittedText.trim();
+    if (!text) {
+      return;
+    }
+    await runInvestigation(text, { refreshSubmittedMessage: false });
+  }
+
+  function handleReportFocus() {
+    const reportPanel = document.getElementById("report-panel");
+    reportPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (reportPanel instanceof HTMLElement) {
+      reportPanel.focus({ preventScroll: true });
+    }
   }
 
   async function handleCopyReport() {
@@ -164,20 +211,29 @@ export default function App() {
       <Header state={viewState} />
 
       <section className="triage-board" aria-label="VYVY investigation workspace">
-        <InputPanel
-          characterCount={characterCount}
+        <InvestigationChatPanel
+          demoCases={demoCases}
+          errorMessage={errorMessage}
+          fastWarning={fastWarning}
+          hasFastWarningResult={fastWarningResult !== null}
           inputText={inputText}
+          investigation={investigation}
+          isLoading={isLoading}
+          isReportVisible={isReportVisible}
+          progress={progress}
           selectedCaseId={selectedCaseId}
+          submittedAt={submittedAt}
+          submittedText={submittedText}
           viewState={viewState}
           onAnalyze={() => {
             void handleAnalyze();
           }}
-          onClear={handleClear}
-          onExampleChange={handleExampleChange}
-          onInputChange={(value) => {
-            setInputText(value);
-            setViewState(value.trim() ? "typing" : "empty");
-            clearResults();
+          onDemoSelect={handleExampleChange}
+          onInputChange={handleInputChange}
+          onNewInvestigation={resetConversation}
+          onReportFocus={handleReportFocus}
+          onRetry={() => {
+            void handleRetry();
           }}
         />
 
@@ -218,7 +274,7 @@ function Header({ state }: { state: DemoViewState }) {
         </div>
         <div>
           <h1 id="page-title">VYVY</h1>
-          <p>AI Investigation &amp; Verification Engine</p>
+          <p>Vietnam&apos;s AI Investigator Against Digital Scams</p>
         </div>
       </div>
       <p className="mission">Investigate. Debate. Verify. Explain.</p>
@@ -227,116 +283,6 @@ function Header({ state }: { state: DemoViewState }) {
         <span>Hệ thống: {stateLabels[state]}</span>
       </div>
     </header>
-  );
-}
-
-interface InputPanelProps {
-  characterCount: number;
-  inputText: string;
-  selectedCaseId: string;
-  viewState: DemoViewState;
-  onAnalyze: () => void;
-  onClear: () => void;
-  onExampleChange: (caseId: string) => void;
-  onInputChange: (value: string) => void;
-}
-
-function InputPanel({
-  characterCount,
-  inputText,
-  selectedCaseId,
-  viewState,
-  onAnalyze,
-  onClear,
-  onExampleChange,
-  onInputChange,
-}: InputPanelProps) {
-  const selectedDemoCase = demoCases.find((demoCase) => demoCase.id === selectedCaseId);
-
-  return (
-    <section className="column input-column" aria-labelledby="input-heading">
-      <PanelHeader eyebrow="Nhập liệu điều tra" title="Nguồn cần kiểm tra" />
-
-      <div className="chat-surface">
-        <div className="message-bubble suspect">
-          {inputText.trim() ? (
-            <p>{shortPreview(inputText, 150)}</p>
-          ) : (
-            <p>Dán một đoạn chat, email hoặc nội dung đáng nghi để bắt đầu.</p>
-          )}
-        </div>
-        <div className="time-stamp">14:20</div>
-        <div className="message-bubble analyst">
-          <p>
-            {viewState === "empty"
-              ? "Chưa có nội dung. Chọn ví dụ demo hoặc nhập văn bản để điều tra."
-              : viewState === "loading"
-                ? "Đang chạy Fast Check và điều tra đầy đủ. Báo cáo sẽ cập nhật khi backend trả về."
-                : viewState === "error"
-                  ? "Phát hiện lỗi đầu vào hoặc kết nối. Vui lòng xem thông báo ở cột báo cáo."
-                  : "Đã sẵn sàng điều tra đa lớp. Nhấn phân tích để gọi API thật."}
-          </p>
-        </div>
-        <div className="time-stamp">14:21</div>
-      </div>
-
-      <label className="field-label" htmlFor="message-input">
-        Nội dung văn bản
-      </label>
-      <textarea
-        id="message-input"
-        aria-describedby="privacy-note character-counter"
-        maxLength={12_000}
-        placeholder="Ví dụ: Tài khoản của bạn sẽ bị khóa, vui lòng cung cấp OTP..."
-        value={inputText}
-        onChange={(event) => onInputChange(event.target.value)}
-      />
-
-      <div className="input-meta">
-        <span id="character-counter">{characterCount.toLocaleString("vi-VN")} / 12.000 ky tu</span>
-        <span id="privacy-note">MVP chỉ nhận văn bản, không hỗ trợ upload.</span>
-      </div>
-
-      <label className="field-label" htmlFor="example-selector">
-        Ví dụ demo
-      </label>
-      <select
-        id="example-selector"
-        value={selectedCaseId}
-        onChange={(event) => onExampleChange(event.target.value)}
-      >
-        <option value="">Chọn một ví dụ...</option>
-        {demoCases.map((demoCase) => (
-          <option key={demoCase.id} value={demoCase.id}>
-            {demoCase.label}
-          </option>
-        ))}
-      </select>
-
-      {selectedCaseId ? (
-        <div className="case-note">
-          <strong>{selectedDemoCase?.description}</strong>
-          <span>
-            Dự kiến: Fast {riskLabels[selectedDemoCase?.expectedRiskBand.fast ?? "uncertain"]} / Full{" "}
-            {riskLabels[selectedDemoCase?.expectedRiskBand.full ?? "uncertain"]}
-          </span>
-        </div>
-      ) : null}
-
-      <div className="button-row">
-        <button className="primary-button" type="button" onClick={onAnalyze}>
-          Phân tích bằng API
-        </button>
-        <button className="secondary-button" type="button" onClick={onClear}>
-          Đặt lại
-        </button>
-      </div>
-
-      <div className="safety-note" role="status">
-        <strong>Cảnh báo rủi ro tức thì</strong>
-        <span>Không chuyển tiền, không cung cấp mã OTP hoặc mật khẩu khi chưa xác minh.</span>
-      </div>
-    </section>
   );
 }
 
@@ -411,7 +357,7 @@ function ReportColumn({
   onCopyReport: () => void;
 }) {
   return (
-    <aside className="column report-column" aria-labelledby="report-heading">
+    <aside className="column report-column" id="report-panel" tabIndex={-1} aria-labelledby="report-heading">
       <PanelHeader eyebrow="Bao cao ket luan" title="Ket qua xac minh" />
       <ConclusionCard
         errorMessage={errorMessage}
@@ -620,7 +566,7 @@ function VerificationCard({
       ) : (
         <>
           <div className="weight-grid">
-            <MetricTile label="Rui ro" value={`${formatScore(riskScore(investigation))}/100`} />
+            <MetricTile label="Muc rui ro" value={riskLabels[riskLabel(investigation)] ?? riskLabel(investigation)} />
             <MetricTile label="Tin cay" value={`${formatScore(confidenceScore(investigation))}/100`} />
             <MetricTile label="Dong thuan" value={`${formatScore(consensus.consensus_score)}/100`} />
             <MetricTile label="Evidence" value={String(investigation.evidence?.length ?? 0)} />
@@ -707,7 +653,7 @@ function ConclusionCard({
   return (
     <section className="report-block" aria-labelledby="report-heading">
       <div className="score-stack">
-        <RiskMeter label={riskLabel(investigation)} score={riskScore(investigation)} />
+        <RiskMeter label={riskLabel(investigation)} />
         <div className="confidence-box">
           <span>{formatScore(confidenceScore(investigation))}/100</span>
           <strong>Do tin cay AI</strong>
@@ -899,12 +845,11 @@ function RiskBadge({ label, score }: { label: string; score: number }) {
   );
 }
 
-function RiskMeter({ label, score }: { label: string; score: number }) {
+function RiskMeter({ label }: { label: string }) {
   return (
-    <div className={`risk-meter meter-${label}`} aria-label={`Rui ro ${formatScore(score)} tren 100`}>
-      <span>{formatScore(score)}</span>
+    <div className={`risk-meter meter-${label}`} aria-label={`Muc rui ro: ${riskLabels[label] ?? label}`}>
+      <span>Rủi ro</span>
       <strong>{riskLabels[label] ?? label}</strong>
-      <small>Rui ro / 100</small>
     </div>
   );
 }
@@ -957,10 +902,6 @@ function progressLabel(state: ProgressState) {
     error: "Loi",
   };
   return labels[state];
-}
-
-function riskScore(investigation: InvestigationResponse): number {
-  return investigation.report.risk_score ?? investigation.verification.risk_score;
 }
 
 function riskLabel(investigation: InvestigationResponse): string {
@@ -1073,12 +1014,30 @@ function formatScore(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
-function shortPreview(value: string, maxLength: number): string {
-  const cleaned = value.trim().split(/\s+/).join(" ");
-  if (cleaned.length <= maxLength) {
-    return cleaned;
+function progressForViewState(state: DemoViewState, hasFastWarningResult: boolean): ProgressState[] {
+  if (state === "completed") {
+    return ["done", "done", "done", "done", "done"];
   }
-  return `${cleaned.slice(0, maxLength).trimEnd()}...`;
+  if (state === "partial") {
+    return ["done", "partial", "done", "done", "done"];
+  }
+  if (state === "loading" && hasFastWarningResult) {
+    return ["done", "active", "pending", "pending", "pending"];
+  }
+  if (state === "loading") {
+    return ["active", "pending", "pending", "pending", "pending"];
+  }
+  if (state === "error") {
+    return ["done", "error", "pending", "pending", "pending"];
+  }
+  return ["pending", "pending", "pending", "pending", "pending"];
+}
+
+function currentTimeLabel(): string {
+  return new Intl.DateTimeFormat("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date());
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

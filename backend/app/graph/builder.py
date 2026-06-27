@@ -223,6 +223,7 @@ class FullInvestigationGraph:
                     expert_assessments=state.expert_assessments,
                     behavioral_analysis=state.behavioral_analysis,
                     evidence_status=state.evidence_status,
+                    text=state.input_text,
                 )
             ),
         )

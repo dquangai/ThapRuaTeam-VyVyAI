@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/api/client.ts","./src/data/mockinvestigation.ts","./src/types/index.ts","./src/types/investigation.ts"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/api/client.ts","./src/components/investigationchatpanel.tsx","./src/data/mockinvestigation.ts","./src/types/index.ts","./src/types/investigation.ts"],"version":"5.9.3"}

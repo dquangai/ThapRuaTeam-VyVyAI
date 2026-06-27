@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import re
+import unicodedata
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.evidence import EvidenceOperationStatus, EvidenceSearchStatus
@@ -44,12 +47,13 @@ def score_verification(
     expert_assessments: list[ExpertAssessment],
     behavioral_analysis: BehavioralAnalysis | None,
     evidence_status: EvidenceSearchStatus | None = None,
+    text: str | None = None,
 ) -> VerificationScoringResult:
     risk_components = RiskComponents(
         evidence_risk=_evidence_risk(judge),
         source_risk=_source_risk(judge, evidence),
         consensus_risk=judge.consensus_score,
-        context_risk=_context_risk(judge),
+        context_risk=_context_risk(judge, text=text),
         behavioral_risk=behavioral_analysis.behavioral_risk_score
         if behavioral_analysis is not None
         else 0,
@@ -94,6 +98,7 @@ def calculate_risk_score(components: RiskComponents) -> float:
         + 0.10 * components.context_risk
         + 0.10 * components.behavioral_risk
     )
+    score = max(score, _context_safety_floor(components))
     return round(_clamp(score, 0, 100), 1)
 
 
@@ -171,13 +176,21 @@ def _source_risk(judge: JudgeResult, evidence: list[EvidenceItem]) -> float:
     )
 
 
-def _context_risk(judge: JudgeResult) -> float:
+def _context_risk(judge: JudgeResult, *, text: str | None = None) -> float:
     scores = [
         finding.risk_score
         for finding in judge.supported_findings
         if finding.basis is FindingBasis.INPUT_TEXT
     ]
-    return _average(scores)
+    context_text = " ".join(
+        item
+        for finding in judge.supported_findings
+        for item in [finding.statement, finding.input_text_span or ""]
+        if item
+    )
+    if text:
+        context_text = f"{text} {context_text}"
+    return max(_average(scores), _text_context_risk(context_text))
 
 
 def _evidence_coverage(judge: JudgeResult, evidence: list[EvidenceItem]) -> float:
@@ -243,6 +256,87 @@ def _risk_label(score: float) -> RiskLabel:
     if score >= 25:
         return RiskLabel.UNCERTAIN
     return RiskLabel.LOW
+
+
+def _context_safety_floor(components: RiskComponents) -> float:
+    """Prevent strong text-only danger signs from being mislabeled as low risk.
+
+    External evidence controls confidence. Risk must still reflect obvious unsafe
+    content such as OTP requests, urgent money transfer, or guaranteed returns.
+    """
+
+    floor = 0.0
+    if components.context_risk >= 85:
+        floor = 65
+    elif components.context_risk >= 75:
+        floor = 55
+    elif components.context_risk >= 65:
+        floor = 45
+
+    if components.context_risk >= 75 and components.consensus_risk >= 60:
+        floor = max(floor, 70)
+    if components.context_risk >= 75 and components.behavioral_risk >= 60:
+        floor = max(floor, 65)
+    if components.context_risk >= 85 and (
+        components.consensus_risk >= 75 or components.behavioral_risk >= 75
+    ):
+        floor = max(floor, 75)
+    return floor
+
+
+def _text_context_risk(text: str) -> float:
+    normalized = _normalize_text(text)
+    if not normalized:
+        return 0
+
+    score = 0.0
+    if _has_any(normalized, ["otp", "ma xac thuc", "mat khau", "password", "pin"]):
+        score = max(score, 90)
+    if _has_any(normalized, ["khoa tai khoan", "dong bang tai khoan", "bi khoa"]):
+        score = max(score, 85)
+    if _has_any(normalized, ["bat giu", "vu an", "rua tien", "cong an", "toa an"]):
+        score = max(score, 90)
+    if _has_any(normalized, ["chuyen tien", "chuyen khoan", "nap tien"]) and _has_any(
+        normalized,
+        ["gap", "ngay", "phut", "hom nay", "trong vong"],
+    ):
+        score = max(score, 88)
+    if _has_any(normalized, ["phi ho so", "dat coc", "phi truoc", "tra phi"]):
+        score = max(score, 78)
+    if _has_investment_promise(normalized):
+        score = max(score, 82)
+    if _has_any(normalized, ["hoa hong", "gioi thieu them", "tuyen tuyen duoi"]):
+        score = max(score, 72)
+    if _has_any(normalized, ["khong duoc noi voi ai", "giu bi mat", "bao mat tuyet doi"]):
+        score = max(score, 82)
+    if _has_any(normalized, ["anydesk", "teamviewer", "ultraviewer", "dieu khien tu xa"]):
+        score = max(score, 86)
+    if re.search(r"https?://|bit\.ly|tinyurl|zalo\.me", normalized):
+        score = max(score, 62)
+    return score
+
+
+def _has_investment_promise(normalized: str) -> bool:
+    return (
+        _has_any(normalized, ["loi nhuan", "lai", "cam ket", "bao loi", "dam bao"])
+        and _has_any(normalized, ["moi ngay", "%", "phan tram", "coin", "dau tu", "du an"])
+    )
+
+
+def _has_any(text: str, needles: list[str]) -> bool:
+    return any(needle in text for needle in needles)
+
+
+def _normalize_text(text: str) -> str:
+    chars: list[str] = []
+    for char in text:
+        if char in {"đ", "Đ"}:
+            chars.append("d")
+            continue
+        for part in unicodedata.normalize("NFD", char):
+            if unicodedata.category(part) != "Mn":
+                chars.append(part.casefold())
+    return " ".join("".join(chars).split())
 
 
 def _average(values: list[float]) -> float:

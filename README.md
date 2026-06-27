@@ -1,90 +1,499 @@
-# VYVY Hackathon Vibe Coding Kit
+# VYVY — Vietnam's AI Investigator Against Digital Scams
 
-**Sản phẩm:** VYVY — AI Investigation & Verification Engine  
-**Thông điệp:** *Investigate. Debate. Verify. Explain.*  
-**Ngày chuẩn bị:** 26/06/2026  
-**Ngày thi dự kiến:** 27/06/2026  
-**Giới hạn:** Build trong một ngày; MVP hiện tại **chỉ nhận văn bản**.
+VYVY là một MVP điều tra rủi ro lừa đảo số dành cho nội dung văn bản tiếng Việt. Người dùng dán một đoạn chat, email, quảng cáo, lời mời đầu tư hoặc tin nhắn đáng nghi; hệ thống trả về cảnh báo nhanh, bằng chứng tìm kiếm, đánh giá chuyên gia, điểm rủi ro, độ tin cậy và khuyến nghị hành động an toàn.
 
-Bộ tài liệu này được thiết kế để đội thi có thể mở repository, giao từng nhiệm vụ nhỏ cho Codex, kiểm tra kết quả, ghép hệ thống và chuẩn bị demo mà không bị trôi phạm vi.
+> MVP hiện chỉ nhận văn bản. Không hỗ trợ OCR, ảnh, PDF, upload file, đăng nhập, cơ sở dữ liệu, browser extension hoặc admin dashboard.
 
-## 1. Mục tiêu demo cuối ngày
+## Mục tiêu sản phẩm
 
-Người dùng dán một đoạn chat, email hoặc nội dung đáng ngờ. VYVY sẽ:
+VYVY giúp người dùng tự kiểm tra một nội dung đáng nghi theo luồng:
 
-1. Chuẩn hóa và hiểu nội dung.
-2. Cảnh báo nhanh các dấu hiệu nguy hiểm trong khoảng vài giây.
-3. Tách thực thể và tạo truy vấn điều tra.
-4. Thu thập bằng chứng từ nhiều nguồn hoặc từ bộ dữ liệu demo khi API ngoài không khả dụng.
-5. Cho bốn chuyên gia AI đánh giá song song:
-   - Financial Expert
-   - Legal Risk Expert
-   - Cyber Expert
-   - OSINT Expert
-6. Phân tích kỹ thuật thao túng tâm lý.
-7. Để Judge Agent tổng hợp, loại bỏ lập luận yếu và tính điểm.
-8. Sinh báo cáo dễ hiểu gồm kết luận, lý do, bằng chứng và hành động an toàn.
+1. Gửi văn bản cần điều tra.
+2. Chạy Fast Check để phát hiện dấu hiệu rủi ro tức thì.
+3. Trích xuất nội dung, thực thể, claim và truy vấn tìm kiếm.
+4. Tìm kiếm bằng chứng qua adapter.
+5. Chạy bốn expert song song: Financial, Legal Risk, Cyber, OSINT.
+6. Phân tích kỹ thuật thao túng hành vi.
+7. Judge Agent kiểm tra lập luận và bằng chứng.
+8. Tính risk score và confidence score bằng logic deterministic.
+9. Sinh báo cáo tiếng Việt có kết luận, lý do, bằng chứng, khuyến nghị và giới hạn.
 
-## 2. Phạm vi bị khóa
+VYVY không kết luận chắc chắn ai là tội phạm. Báo cáo dùng các cụm như “nguy cơ”, “dấu hiệu”, “chưa đủ bằng chứng” và khuyến nghị người dùng xác minh qua kênh chính thức.
 
-### Có trong MVP
+## Tính năng chính
 
-- Một ô nhập văn bản.
-- Fast Check theo rule và LLM có cấu trúc.
-- Full Investigation.
-- Tìm kiếm bằng chứng qua adapter.
-- Bốn expert chạy song song.
-- Behavioral Risk.
-- Judge + Verification Score.
-- Safety Advice.
-- Báo cáo trên web.
-- Xuất Markdown hoặc copy báo cáo.
-- Mock Mode để demo không phụ thuộc mạng.
+- Text-only investigation: một ô nhập văn bản, giới hạn 10–12.000 ký tự.
+- Fast Check deterministic: phát hiện OTP/mật khẩu/PIN, chuyển tiền gấp, đe dọa khóa tài khoản/bắt giữ, link đáng nghi, phí trước, lợi nhuận cam kết, yêu cầu giữ bí mật.
+- Full Investigation: intake, classifier, evidence search, behavioral analysis, experts, judge, scoring, safety advice và report.
+- Mock Mode: demo offline, deterministic, không gọi API ngoài.
+- Live Mode: dùng OpenAI cho các node LLM-backed và Tavily cho evidence search khi được cấu hình.
+- Optional VirusTotal enrichment: tra cứu reputation domain khi bật cấu hình, không upload file và không scan chủ động.
+- Frontend chatbot-style: gửi nội dung như một phiên điều tra, hiển thị fast warning, progress, report, evidence và khuyến nghị.
+- Markdown report: có thể copy báo cáo để chia sẻ.
 
-### Không làm trong ngày thi
+## Công nghệ sử dụng
 
-- OCR, xử lý ảnh, screenshot, PDF hoặc file upload.
-- Browser extension.
-- Đăng nhập, phân quyền, admin dashboard.
-- Cơ sở dữ liệu người dùng.
-- Hệ thống học liên tục hoặc tự huấn luyện.
-- Realtime monitoring.
-- Web crawler tổng quát.
-- Thanh toán.
-- Mobile app.
-- Kết luận pháp lý hoặc buộc tội tổ chức/cá nhân.
+### Backend
 
-## 3. Thứ tự đọc
+- Python 3.12+
+- FastAPI
+- Uvicorn
+- Pydantic và Pydantic Settings
+- OpenAI Python SDK
+- httpx
+- pytest
+- Ruff
+- Provider adapter pattern cho LLM, search và enrichment
+- JSON Schema contracts trong `contracts/`
 
-1. `AGENTS.md`
-2. `docs/00_HACKATHON_MASTER_PLAN.md`
-3. `docs/01_SCOPE_LOCK.md`
-4. `specs/active/mvp/requirements.md`
-5. `specs/active/mvp/design.md`
-6. `specs/active/mvp/tasks.md`
-7. `docs/12_CODEX_PROMPT_PACK.md`
-8. `docs/07_TEST_PLAN.md`
-9. `docs/08_DEMO_PITCH.md`
+### Frontend
 
-## 4. Cách dùng với Codex
+- React 19
+- TypeScript
+- Vite 7
+- ESLint
+- CSS thuần, responsive, không dùng UI framework ngoài
 
-Codex nên được giao **một nhiệm vụ nhỏ mỗi lần**. Trước mỗi task:
+### External providers
 
-- Yêu cầu đọc `AGENTS.md`.
-- Chỉ định task ID trong `specs/active/mvp/tasks.md`.
-- Chỉ định files được phép sửa.
-- Yêu cầu chạy đúng lệnh kiểm tra.
-- Yêu cầu báo cáo `git diff --stat`, test result và rủi ro còn lại.
-- Không yêu cầu “xây toàn bộ dự án” bằng một prompt duy nhất.
+- OpenAI: LLM-backed intake/classifier/experts/judge/report khi Live Mode.
+- Tavily: evidence search khi `ENABLE_WEB_SEARCH=true`.
+- VirusTotal: optional domain reputation lookup khi `ENABLE_VIRUSTOTAL=true`.
 
-## 5. Kết quả tối thiểu để được coi là hoàn thành
+## Cấu trúc repository
 
-- `GET /health` trả `200`.
-- Fast Check trả kết quả hợp lệ dưới ngưỡng latency đội thi đặt ra.
-- Full Investigation trả JSON đúng schema.
-- Có ít nhất 4 tình huống demo.
-- Không có nguồn bằng chứng giả.
-- Khi search lỗi, UI nói rõ “không lấy được dữ liệu ngoài” và giảm confidence.
-- Frontend không crash với input rỗng, input dài hoặc API lỗi.
-- Có nút chạy demo bằng dữ liệu mẫu.
-- Có video dự phòng hoặc ảnh chụp màn hình kết quả.
+```text
+.
+├── backend/
+│   ├── app/
+│   │   ├── api/              # FastAPI routes: health, fast-check, investigate
+│   │   ├── core/             # typed settings and env loading
+│   │   ├── evidence/         # search adapter, normalization, source scoring
+│   │   ├── graph/            # full investigation orchestration
+│   │   ├── models/           # Pydantic request/response models
+│   │   ├── nodes/            # intake, classifier, experts, judge, safety
+│   │   ├── prompts/          # structured prompt contracts
+│   │   ├── reporting/        # safety advisor and report generator
+│   │   ├── scoring/          # deterministic verification/risk/confidence scoring
+│   │   └── services/         # OpenAI, Tavily, VirusTotal, provider factory
+│   ├── scripts/
+│   │   └── live_provider_smoke.py
+│   ├── tests/
+│   ├── requirements.txt
+│   └── pyproject.toml
+├── frontend/
+│   ├── src/
+│   │   ├── api/              # frontend API client
+│   │   ├── components/       # chatbot investigation panel
+│   │   ├── data/             # deterministic demo fixtures
+│   │   ├── types/            # TypeScript API contracts
+│   │   ├── App.tsx
+│   │   └── styles.css
+│   ├── package.json
+│   └── vite.config.ts
+├── contracts/                # JSON Schema request/response contracts
+├── docs/                     # scope, architecture, scoring, demo notes
+├── samples/                  # demo cases and expected report examples
+├── specs/active/mvp/         # locked MVP requirements/design/tasks
+├── scripts/
+│   └── smoke_test.py
+├── .env.example
+└── README.md
+```
+
+## Yêu cầu môi trường
+
+- Windows PowerShell, macOS terminal hoặc Linux shell.
+- Python 3.12 hoặc mới hơn.
+- Node.js tương thích Vite 7.
+- npm.
+- Git.
+
+Khuyến nghị trên Windows:
+
+```powershell
+py --version
+node --version
+npm --version
+```
+
+## Cấu hình môi trường
+
+Không commit `.env`. Repository đã ignore `.env`, `.env.*`, `backend/.env`, `frontend/.env`.
+
+File mẫu nằm tại:
+
+```text
+.env.example
+```
+
+Backend đọc env từ:
+
+```text
+backend/.env
+```
+
+Frontend đọc env từ:
+
+```text
+frontend/.env
+```
+
+### Mock Mode — chạy demo offline
+
+Mock Mode phù hợp để demo nhanh, chạy test, hoặc làm việc khi chưa có API key.
+
+Tạo file backend env:
+
+```powershell
+Copy-Item .env.example backend\.env
+```
+
+Trong `backend/.env`, giữ hoặc đặt:
+
+```env
+MOCK_MODE=true
+ENABLE_WEB_SEARCH=true
+ENABLE_VIRUSTOTAL=false
+CORS_ALLOW_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+Tạo file frontend env:
+
+```powershell
+Set-Content -Path frontend\.env -Value "VITE_API_BASE_URL=http://127.0.0.1:8000"
+```
+
+Mock Mode không cần `OPENAI_API_KEY`, `TAVILY_API_KEY` hoặc `VIRUSTOTAL_API_KEY`.
+
+### Live Mode — dùng provider thật
+
+Chỉ bật Live Mode khi đã có API key trong `backend/.env`. Không paste key vào README, terminal log, issue hoặc commit.
+
+Trong `backend/.env`, cấu hình:
+
+```env
+MOCK_MODE=false
+ENABLE_WEB_SEARCH=true
+ENABLE_VIRUSTOTAL=false
+
+OPENAI_API_KEY=
+OPENAI_MODEL_FAST=gpt-5.4-mini
+OPENAI_MODEL_EXPERT=gpt-5.4-mini
+OPENAI_MODEL_JUDGE=gpt-5.5
+OPENAI_MODEL_REPORT=gpt-5.5
+
+TAVILY_API_KEY=
+VIRUSTOTAL_API_KEY=
+CORS_ALLOW_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+Model routing:
+
+| Role | Env variable | Dùng cho |
+| --- | --- | --- |
+| FAST | `OPENAI_MODEL_FAST` | Intake, classifier, behavioral, query planning, repair retry |
+| EXPERT | `OPENAI_MODEL_EXPERT` | Financial, Legal Risk, Cyber, OSINT experts |
+| JUDGE | `OPENAI_MODEL_JUDGE` | Judge, disagreement analysis, consensus |
+| REPORT | `OPENAI_MODEL_REPORT` | Safety advisor và report generation |
+
+Không dùng biến deprecated `OPENAI_MODEL`.
+
+## Cài đặt backend
+
+Từ repository root:
+
+```powershell
+cd backend
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+Chạy backend:
+
+```powershell
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Kiểm tra health:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/health | ConvertTo-Json -Depth 8
+```
+
+Kết quả mong đợi:
+
+```json
+{
+  "service": "vyvy-backend",
+  "status": "ok",
+  "version": "0.1.0"
+}
+```
+
+Health endpoint không gọi API trả phí và không trả secret.
+
+## Cài đặt frontend
+
+Mở terminal mới từ repository root:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Mở trình duyệt:
+
+```text
+http://127.0.0.1:5173
+```
+
+Nếu frontend báo lỗi CORS, kiểm tra `backend/.env`:
+
+```env
+CORS_ALLOW_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+Sau đó restart backend.
+
+## Chạy toàn bộ ứng dụng
+
+Terminal 1 — backend:
+
+```powershell
+cd backend
+.\.venv\Scripts\Activate.ps1
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Terminal 2 — frontend:
+
+```powershell
+cd frontend
+npm run dev
+```
+
+Truy cập:
+
+```text
+http://127.0.0.1:5173
+```
+
+Luồng frontend:
+
+```text
+User submits text
+-> POST /api/v1/fast-check
+-> show fast warning
+-> POST /api/v1/investigate
+-> show progress
+-> render completed or partial report
+```
+
+## API endpoints
+
+### Health
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/health
+```
+
+### Fast Check
+
+```powershell
+$body = @{
+  text = "Tài khoản của bạn sắp bị khóa. Vui lòng gửi mã OTP trong 10 phút để xác minh."
+  locale = "vi"
+  use_web_search = $true
+} | ConvertTo-Json
+
+Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/api/v1/fast-check `
+  -ContentType "application/json" `
+  -Body $body
+```
+
+### Full Investigation
+
+```powershell
+$body = @{
+  text = "Tài khoản của bạn sắp bị khóa. Vui lòng gửi mã OTP trong 10 phút để xác minh."
+  locale = "vi"
+  use_web_search = $true
+} | ConvertTo-Json
+
+Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/api/v1/investigate `
+  -ContentType "application/json" `
+  -Body $body | ConvertTo-Json -Depth 10
+```
+
+## Câu hỏi mẫu để demo
+
+Bạn có thể copy từng nội dung dưới đây vào ô chat của VYVY.
+
+### 1. Tuyển dụng online yêu cầu chuyển tiền trước
+
+```text
+Em được một người trên Telegram mời làm việc online.
+Công việc là like video TikTok và chụp màn hình gửi lại.
+Ngày đầu em kiếm được 300.000 đồng.
+Sau đó họ bảo muốn nhận nhiệm vụ VIP thì phải chuyển trước 2 triệu để kích hoạt tài khoản.
+Họ nói sẽ hoàn lại tiền sau 15 phút.
+```
+
+### 2. Đầu tư coin cam kết lợi nhuận
+
+```text
+Một người bạn giới thiệu em đầu tư vào dự án coin mới.
+Họ cam kết lợi nhuận 3% mỗi ngày.
+Nếu giới thiệu thêm người tham gia em sẽ được hoa hồng.
+Hiện đã có hơn 5.000 người tham gia.
+```
+
+### 3. Quen qua Facebook, gửi quà và yêu cầu đóng thuế
+
+```text
+Em quen một người nước ngoài trên Facebook được 2 tuần.
+Người đó nói yêu em và muốn gửi quà về Việt Nam.
+Sau đó có người tự nhận là nhân viên hải quan gọi điện bảo em đóng 15 triệu tiền thuế để nhận quà.
+```
+
+### 4. Fanpage bán iPhone giá rẻ, yêu cầu chuyển khoản trước
+
+```text
+Em thấy một fanpage bán iPhone 16 Pro Max giá 12 triệu.
+Shop yêu cầu chuyển khoản trước toàn bộ.
+Họ nói vì giá khuyến mãi nên không hỗ trợ COD.
+```
+
+### 5. Đầu tư hiển thị lãi lớn nhưng yêu cầu nộp phí để rút
+
+```text
+Chị gái em được một người trên Zalo giới thiệu đầu tư.
+Bỏ vào 50 triệu.
+Sau 2 tuần tài khoản hiển thị thành 120 triệu.
+Nhưng muốn rút tiền thì phải nộp thêm 15% phí xác minh.
+```
+
+## Validation
+
+### Backend tests
+
+```powershell
+cd backend
+python -m pytest -q
+python -m ruff check .
+```
+
+### Frontend checks
+
+```powershell
+cd frontend
+npm run lint
+npm run build
+```
+
+### Repository smoke test
+
+Từ repository root:
+
+```powershell
+python scripts/smoke_test.py
+```
+
+Smoke test chạy trực tiếp FastAPI app bằng `TestClient`, kiểm tra:
+
+- `GET /health`
+- `POST /api/v1/fast-check`
+- `POST /api/v1/investigate`
+
+### Optional live provider smoke test
+
+Script này có thể tiêu tốn quota provider. Chỉ chạy khi bạn chủ động bật:
+
+```env
+RUN_LIVE_PROVIDER_TESTS=true
+```
+
+Chạy:
+
+```powershell
+cd backend
+python scripts/live_provider_smoke.py
+```
+
+Script chỉ in provider, role, model name, success/failure, latency, result count và safe error type. Không in API key, prompt đầy đủ hoặc raw response.
+
+## Troubleshooting
+
+### CORS: `Disallowed CORS origin`
+
+Nguyên nhân thường gặp: frontend chạy ở `http://127.0.0.1:5173` nhưng backend chỉ allow `http://localhost:5173`.
+
+Sửa trong `backend/.env`:
+
+```env
+CORS_ALLOW_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+Restart backend sau khi sửa.
+
+### Port bị chiếm hoặc bị Windows chặn
+
+Nếu port `8000` không chạy được, thử port khác:
+
+```powershell
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8002
+```
+
+Sau đó cập nhật `frontend/.env`:
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8002
+```
+
+Restart frontend.
+
+### Frontend timeout khi gọi `/investigate`
+
+Live Mode có thể mất lâu hơn Mock Mode vì phải gọi provider ngoài. Kiểm tra:
+
+- Backend còn chạy không.
+- `VITE_API_BASE_URL` đúng port backend chưa.
+- `MOCK_MODE=false` có API key hợp lệ chưa.
+- Tavily/OpenAI có quota và model access không.
+
+### Live Mode vẫn ra mock evidence
+
+Kiểm tra `backend/.env`:
+
+```env
+MOCK_MODE=false
+ENABLE_WEB_SEARCH=true
+```
+
+Restart backend và gọi lại `/health`. Khi Live Mode đúng, health phải báo provider mode là `live` cho OpenAI và Tavily nếu đã bật.
+
+## Security notes
+
+- Không commit `.env`.
+- Không log API key hoặc authorization header.
+- Không lưu nội dung người dùng trong MVP.
+- Không render raw stack trace hoặc raw provider response ra UI.
+- Không upload file, ảnh hoặc PDF.
+- Không chạy code do người dùng cung cấp.
+- External search chỉ đi qua evidence adapter.
+
+## Giới hạn MVP
+
+VYVY là công cụ hỗ trợ đánh giá rủi ro, không phải kết luận pháp lý. Kết quả phụ thuộc vào nội dung đầu vào, nguồn bằng chứng khả dụng, provider configuration và quota. Khi hệ thống trả `partial`, nghĩa là một phần provider hoặc stage không khả dụng; risk vẫn được tính từ tín hiệu hiện có và confidence được điều chỉnh giảm.
+
+## License / Hackathon note
+
+Repository này được xây dựng cho MVP hackathon một ngày. Ưu tiên của dự án là demo ổn định, phạm vi rõ ràng, báo cáo giải thích được và an toàn dữ liệu.

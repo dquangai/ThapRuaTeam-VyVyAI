@@ -4,7 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from pydantic import AliasChoices, Field, PositiveInt, SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 BACKEND_ENV_PATH = BACKEND_ROOT / ".env"
@@ -82,6 +82,22 @@ class Settings(BaseSettings):
         exclude=True,
     )
     run_live_provider_tests: bool = Field(default=False, validation_alias="RUN_LIVE_PROVIDER_TESTS")
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        return (
+            init_settings,
+            dotenv_settings,
+            env_settings,
+            file_secret_settings,
+        )
 
     @property
     def cors_allow_origins(self) -> tuple[str, ...]:

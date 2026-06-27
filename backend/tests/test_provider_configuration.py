@@ -149,6 +149,20 @@ def live_settings(**overrides: Any) -> Settings:
     return Settings(**values)
 
 
+def test_dotenv_values_take_precedence_over_process_environment(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_text("MOCK_MODE=false\nENABLE_WEB_SEARCH=true\n", encoding="utf-8")
+    monkeypatch.setenv("MOCK_MODE", "true")
+
+    settings = Settings(_env_file=env_file)
+
+    assert settings.mock_mode is False
+    assert settings.enable_web_search is True
+
+
 def valid_intake_payload() -> dict[str, Any]:
     return {
         "summary": "Tin nhắn yêu cầu OTP.",

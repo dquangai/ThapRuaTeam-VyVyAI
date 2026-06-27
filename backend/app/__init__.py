@@ -1,0 +1,1 @@
+"""VYVY backend application package."""

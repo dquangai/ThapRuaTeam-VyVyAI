@@ -1,0 +1,115 @@
+[
+  {
+    "case_id": "bank_otp_phishing",
+    "query_keywords": [
+      "vybank",
+      "demo",
+      "otp",
+      "khóa tài khoản",
+      "khoa tai khoan"
+    ],
+    "results": [
+      {
+        "title": "[MOCK] Kịch bản giả mạo ngân hàng yêu cầu OTP",
+        "url": "https://vyvy-mock.example/evidence/mock_bank_otp_advisory",
+        "source_name": "VYVY Mock Evidence — Bank Safety Lab",
+        "published_at": "2026-06-01",
+        "snippet": "Mock evidence: kịch bản demo mô tả tin nhắn yêu cầu OTP, mật khẩu hoặc mã xác thực."
+      },
+      {
+        "title": "[MOCK] Mẫu đe dọa khóa tài khoản trong tin nhắn",
+        "url": "https://vyvy-mock.example/evidence/mock_account_lock_script",
+        "source_name": "VYVY Mock Evidence — Account Safety Lab",
+        "published_at": "2026-06-01",
+        "snippet": "Mock evidence: kịch bản demo ghi nhận đe dọa khóa tài khoản để thúc ép xác minh gấp."
+      }
+    ]
+  },
+  {
+    "case_id": "recruitment_fee",
+    "query_keywords": [
+      "tuyển dụng",
+      "tuyen dung",
+      "phí",
+      "phi",
+      "đặt cọc",
+      "dat coc"
+    ],
+    "results": [
+      {
+        "title": "[MOCK] Mẫu tuyển dụng yêu cầu phí bảo đảm",
+        "url": "https://vyvy-mock.example/evidence/mock_recruitment_fee_pattern",
+        "source_name": "VYVY Mock Evidence — Recruitment Lab",
+        "published_at": "2026-06-01",
+        "snippet": "Mock evidence: lời mời việc online yêu cầu chuyển phí hồ sơ, phí bảo đảm hoặc đặt cọc trước."
+      }
+    ]
+  },
+  {
+    "case_id": "fake_authority_payment",
+    "query_keywords": [
+      "cơ quan điều tra",
+      "co quan dieu tra",
+      "tài khoản tạm giữ",
+      "tai khoan tam giu",
+      "bảo mật",
+      "bao mat"
+    ],
+    "results": [
+      {
+        "title": "[MOCK] Mẫu mạo danh thẩm quyền yêu cầu nộp tiền",
+        "url": "https://vyvy-mock.example/evidence/mock_authority_payment_script",
+        "source_name": "VYVY Mock Evidence — Authority Pressure Lab",
+        "published_at": "2026-06-01",
+        "snippet": "Mock evidence: kịch bản demo yêu cầu chuyển tiền vào tài khoản tạm giữ để chứng minh vô can."
+      },
+      {
+        "title": "[MOCK] Yêu cầu giữ bí mật trong kịch bản gây áp lực",
+        "url": "https://vyvy-mock.example/evidence/mock_secrecy_pressure",
+        "source_name": "VYVY Mock Evidence — Behavioral Lab",
+        "published_at": "2026-06-01",
+        "snippet": "Mock evidence: lời yêu cầu không nói với người khác làm giảm khả năng người nhận nhờ kiểm tra."
+      }
+    ]
+  },
+  {
+    "case_id": "marketplace_login_link",
+    "query_keywords": [
+      "người mua",
+      "nguoi mua",
+      "đăng nhập nhận tiền",
+      "dang nhap nhan tien",
+      "giao dịch sắp hết hạn",
+      "giao dich sap het han"
+    ],
+    "results": [
+      {
+        "title": "[MOCK] Mẫu đường dẫn đăng nhập nhận tiền trên sàn mua bán",
+        "url": "https://vyvy-mock.example/evidence/mock_marketplace_login_pattern",
+        "source_name": "VYVY Mock Evidence — Marketplace Lab",
+        "published_at": "2026-06-01",
+        "snippet": "Mock evidence: tin nhắn demo thúc giục người bán đăng nhập qua đường dẫn để nhận tiền."
+      }
+    ]
+  },
+  {
+    "case_id": "benign_school_reminder",
+    "query_keywords": [
+      "trường demo",
+      "truong demo",
+      "khảo sát môn học",
+      "khao sat mon hoc",
+      "cổng thông tin quen thuộc",
+      "cong thong tin quen thuoc"
+    ],
+    "results": [
+      {
+        "title": "[MOCK] Tham chiếu nhắc khảo sát môn học không yêu cầu thông tin nhạy cảm",
+        "url": "https://vyvy-mock.example/evidence/mock_benign_survey_reference",
+        "source_name": "VYVY Mock Evidence — Benign Reference Lab",
+        "published_at": "2026-06-01",
+        "snippet": "Mock evidence: thông báo demo chỉ nhắc hoàn thành khảo sát và không yêu cầu tiền, mật khẩu hoặc OTP."
+      }
+    ]
+  }
+]

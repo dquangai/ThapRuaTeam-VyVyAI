@@ -75,6 +75,29 @@
         }
       }
     },
+    "experts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "expert",
+          "cited_evidence_ids"
+        ],
+        "properties": {
+          "expert": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cited_evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "verification": {
       "type": "object",
       "required": [

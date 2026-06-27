@@ -1073,6 +1073,14 @@ function formatScore(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
+function shortPreview(value: string, maxLength: number): string {
+  const cleaned = value.trim().split(/\s+/).join(" ");
+  if (cleaned.length <= maxLength) {
+    return cleaned;
+  }
+  return `${cleaned.slice(0, maxLength).trimEnd()}...`;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }

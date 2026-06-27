@@ -1095,3 +1095,365 @@ details summary {
     width: 8rem;
   }
 }
+
+/* Declutter polish pass: make the demo read like a guided investigation, not a dense grid. */
+body {
+  background:
+    radial-gradient(circle at top left, rgb(79 70 229 / 10%), transparent 34rem),
+    linear-gradient(180deg, #f8faff 0%, #eef3fb 100%);
+}
+
+.app-shell {
+  width: min(1240px, 100%);
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  min-height: 4.4rem;
+  margin: 0 auto;
+  border: 1px solid rgb(226 232 240 / 85%);
+  border-top: 0;
+  border-radius: 0 0 1.15rem 1.15rem;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 18px 48px rgb(15 23 42 / 8%);
+  backdrop-filter: blur(18px);
+}
+
+.triage-board {
+  grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
+  gap: 1.1rem;
+  align-items: start;
+  min-height: auto;
+  padding: 1.25rem 1rem 2rem;
+}
+
+.input-column {
+  position: sticky;
+  top: 5.5rem;
+  grid-row: 1 / span 2;
+  max-height: calc(100vh - 6.5rem);
+  overflow: auto;
+  border: 0;
+  border-radius: 1.25rem;
+  box-shadow: 0 22px 56px rgb(15 23 42 / 10%);
+}
+
+.investigation-column {
+  grid-column: 2;
+  gap: 0.95rem;
+}
+
+.report-column {
+  display: grid;
+  grid-column: 2;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.82fr);
+  gap: 1rem;
+  border: 0;
+  background: transparent;
+}
+
+.report-column .panel-header {
+  grid-column: 1 / -1;
+}
+
+.report-column .report-block:first-of-type,
+.report-column .report-block:nth-of-type(2) {
+  grid-column: 1 / -1;
+}
+
+.panel-header,
+.work-card,
+.judge-card,
+.report-block,
+.agent-tile {
+  border: 1px solid rgb(226 232 240 / 95%);
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 95%);
+  box-shadow: 0 16px 36px rgb(15 23 42 / 7%);
+}
+
+.panel-header {
+  min-height: auto;
+  margin: 0;
+  padding: 1rem;
+  border-width: 0 0 1px;
+  border-radius: 1.25rem 1.25rem 0 0;
+  box-shadow: none;
+}
+
+.input-column .panel-header {
+  background: linear-gradient(135deg, #ffffff, #f8f7ff);
+}
+
+.header-icon {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-color: #4f46e5;
+}
+
+.chat-surface {
+  gap: 0.35rem;
+  padding: 0.9rem 1rem 0.45rem;
+}
+
+.message-bubble {
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: 0.9rem;
+  font-size: 0.8rem;
+}
+
+.message-bubble.suspect {
+  max-height: 8.5rem;
+  overflow: hidden;
+  background: linear-gradient(135deg, #4338ca, #5b4df2);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 18%);
+}
+
+.message-bubble.analyst {
+  background: #f4f7fb;
+}
+
+.time-stamp {
+  display: none;
+}
+
+textarea {
+  min-height: 7.2rem;
+  max-height: 11rem;
+  border-radius: 0.85rem;
+  line-height: 1.45;
+}
+
+select {
+  border-radius: 0.85rem;
+}
+
+textarea,
+select {
+  border-color: #dbe3ef;
+  box-shadow: inset 0 1px 2px rgb(15 23 42 / 4%);
+}
+
+.input-meta {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+
+.case-note {
+  margin-top: 0.8rem;
+  border-radius: 0.9rem;
+  font-size: 0.72rem;
+}
+
+.button-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.7rem;
+  padding-top: 0.9rem;
+}
+
+.primary-button,
+.secondary-button {
+  border-radius: 0.85rem;
+}
+
+.primary-button {
+  background: linear-gradient(135deg, #4338ca, #5b4df2);
+  box-shadow: 0 12px 24px rgb(67 56 202 / 22%);
+}
+
+.secondary-button {
+  min-width: 6.5rem;
+}
+
+.safety-note {
+  margin-top: 0.4rem;
+  border-radius: 0.9rem;
+}
+
+.agent-strip {
+  gap: 0.8rem;
+}
+
+.agent-tile {
+  min-height: 3.55rem;
+  padding: 0.75rem;
+  box-shadow: 0 12px 28px rgb(15 23 42 / 7%);
+}
+
+.agent-tile span {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.agent-tile strong {
+  font-size: 0.63rem;
+}
+
+.agent-tile p {
+  font-size: 0.78rem;
+}
+
+.section-title-row {
+  padding: 0.2rem 0.1rem 0;
+}
+
+.section-title-row h2 {
+  color: #312e81;
+  font-size: 1rem;
+}
+
+.work-card,
+.judge-card {
+  padding: 0.95rem;
+}
+
+.two-up {
+  gap: 0.9rem;
+}
+
+.progress-item {
+  min-height: 2.05rem;
+  background: #f8fafc;
+}
+
+.behavior-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.behavior-tile {
+  min-height: 3.2rem;
+}
+
+.judge-card {
+  background: linear-gradient(135deg, #f1f0ff, #eef4ff);
+}
+
+.weight-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.metric-tile {
+  min-height: 3.45rem;
+  border: 1px solid #e4e8f3;
+}
+
+.expert-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.report-block {
+  padding: 1rem;
+  border-width: 1px;
+  border-radius: 1rem;
+}
+
+.score-stack {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  justify-items: start;
+  margin: 0 0 0.8rem;
+}
+
+.risk-meter {
+  width: 7.6rem;
+  border-width: 0.42rem;
+}
+
+.risk-meter span {
+  font-size: 1.9rem;
+}
+
+.confidence-box {
+  justify-items: start;
+}
+
+.reason-list {
+  margin-bottom: 0.75rem;
+}
+
+.evidence-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.evidence-row {
+  padding: 0.75rem;
+  border: 1px solid #edf1f7;
+  border-radius: 0.9rem;
+  background: #fbfdff;
+}
+
+.evidence-row dl {
+  grid-template-columns: 1fr;
+}
+
+.action-grid {
+  grid-template-columns: 1fr;
+}
+
+.footer-strip {
+  justify-content: center;
+  margin-top: 0.5rem;
+  border-radius: 1rem 1rem 0 0;
+  background: rgb(255 255 255 / 78%);
+}
+
+@media (width <= 1120px) {
+  .triage-board {
+    grid-template-columns: 1fr;
+  }
+
+  .input-column,
+  .investigation-column,
+  .report-column {
+    position: static;
+    grid-column: 1;
+    grid-row: auto;
+    max-height: none;
+  }
+
+  .report-column {
+    grid-template-columns: 1fr;
+  }
+
+  .report-column .report-block {
+    grid-column: 1;
+  }
+}
+
+@media (width <= 820px) {
+  .topbar {
+    border-radius: 0;
+  }
+
+  .agent-strip,
+  .two-up,
+  .expert-list,
+  .evidence-list {
+    grid-template-columns: 1fr;
+  }
+
+  .weight-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (width <= 560px) {
+  .button-row,
+  .score-stack {
+    grid-template-columns: 1fr;
+  }
+
+  .secondary-button {
+    width: 100%;
+  }
+
+  .risk-meter {
+    width: 7.2rem;
+  }
+}

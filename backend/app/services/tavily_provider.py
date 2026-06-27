@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -63,10 +64,12 @@ def _result_items(payload: Any) -> list[dict[str, Any]]:
 
 
 def _raw_result_from_tavily(item: dict[str, Any]) -> RawSearchResult:
+    url = _optional_text(item.get("url"))
     return RawSearchResult(
         title=_optional_text(item.get("title")),
-        url=_optional_text(item.get("url")),
-        source_name=_optional_text(item.get("source_name") or item.get("source")),
+        url=url,
+        source_name=_optional_text(item.get("source_name") or item.get("source"))
+        or _source_name_from_url(url),
         published_at=_optional_text(item.get("published_date") or item.get("published_at")),
         snippet=_optional_text(item.get("content") or item.get("snippet")),
     )
@@ -77,6 +80,15 @@ def _optional_text(value: Any) -> str | None:
         return None
     cleaned = value.strip()
     return cleaned or None
+
+
+def _source_name_from_url(url: str | None) -> str | None:
+    if url is None:
+        return None
+    host = urlparse(url).netloc.strip().casefold()
+    if not host:
+        return None
+    return host.removeprefix("www.")
 
 
 def _safe_http_error(exc: httpx.HTTPStatusError) -> ProviderInvocationError:

@@ -4,7 +4,8 @@ import type {
   InvestigationResponse,
 } from "../types";
 
-const DEFAULT_TIMEOUT_MS = 20_000;
+const FAST_CHECK_TIMEOUT_MS = 20_000;
+const INVESTIGATION_TIMEOUT_MS = 120_000;
 
 export class ApiClientError extends Error {
   constructor(
@@ -18,31 +19,47 @@ export class ApiClientError extends Error {
 
 export interface ApiClientOptions {
   baseUrl?: string;
-  timeoutMs?: number;
+  fastCheckTimeoutMs?: number;
+  investigationTimeoutMs?: number;
 }
 
 export class VyvyApiClient {
   private readonly baseUrl: string;
-  private readonly timeoutMs: number;
+  private readonly fastCheckTimeoutMs: number;
+  private readonly investigationTimeoutMs: number;
 
   constructor(options: ApiClientOptions = {}) {
     this.baseUrl = trimTrailingSlash(
       options.baseUrl ?? import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000",
     );
-    this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.fastCheckTimeoutMs = options.fastCheckTimeoutMs ?? FAST_CHECK_TIMEOUT_MS;
+    this.investigationTimeoutMs =
+      options.investigationTimeoutMs ?? INVESTIGATION_TIMEOUT_MS;
   }
 
   fastCheck(request: InvestigationRequest): Promise<FastCheckResponse> {
-    return this.post<FastCheckResponse>("/api/v1/fast-check", request);
+    return this.post<FastCheckResponse>(
+      "/api/v1/fast-check",
+      request,
+      this.fastCheckTimeoutMs,
+    );
   }
 
   investigate(request: InvestigationRequest): Promise<InvestigationResponse> {
-    return this.post<InvestigationResponse>("/api/v1/investigate", request);
+    return this.post<InvestigationResponse>(
+      "/api/v1/investigate",
+      request,
+      this.investigationTimeoutMs,
+    );
   }
 
-  private async post<ResponseT>(path: string, body: InvestigationRequest): Promise<ResponseT> {
+  private async post<ResponseT>(
+    path: string,
+    body: InvestigationRequest,
+    timeoutMs: number,
+  ): Promise<ResponseT> {
     const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), this.timeoutMs);
+    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const response = await fetch(`${this.baseUrl}${path}`, {

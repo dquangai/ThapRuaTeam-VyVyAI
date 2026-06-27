@@ -11,6 +11,7 @@ from app.evidence import (
     EvidenceSearchMode,
     FailedSearchProvider,
     MockSearchProvider,
+    RawSearchResult,
 )
 from app.graph import InvestigationGraphDependencies, build_investigation_graph
 from app.models import InvestigationRequest, InvestigationStatus, Locale
@@ -46,6 +47,25 @@ class DelayedSearchProvider:
         return await self.delegate.search(query=query, limit=limit)
 
 
+class RecordingSearchProvider:
+    provider_name = "fake-live"
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, int]] = []
+
+    async def search(self, query: str, limit: int) -> list[RawSearchResult]:
+        self.calls.append((query, limit))
+        return [
+            RawSearchResult(
+                title="Cảnh báo không cung cấp mã OTP",
+                url="https://example.org/canh-bao-otp",
+                source_name="Nguồn kiểm thử",
+                published_at="2026-01-01",
+                snippet="Cơ quan chức năng khuyến cáo không cung cấp mã OTP cho người lạ.",
+            )
+        ]
+
+
 class FakeInvestigationLLMProvider:
     def __init__(self, expert_delay_seconds: float = 0) -> None:
         self.expert_delay_seconds = expert_delay_seconds
@@ -69,6 +89,11 @@ class FakeInvestigationLLMProvider:
             finally:
                 self.active_experts -= 1
         raise AssertionError(f"Unexpected schema: {schema}")
+
+
+class FailingContextLLMProvider:
+    async def structured(self, prompt: str, schema: type[BaseModel]) -> Any:
+        raise RuntimeError("provider unavailable")
 
 
 def run(coro: Any) -> Any:
@@ -184,6 +209,43 @@ def test_full_investigation_graph_returns_partial_when_evidence_stage_fails() ->
     assert state.verification_scoring is not None
     assert "Search unavailable or partial: -20" in state.verification_scoring.confidence_penalties
     assert any("evidence_search" in warning for warning in state.warnings)
+
+
+def test_graph_uses_deterministic_search_queries_when_context_llm_fails() -> None:
+    search_provider = RecordingSearchProvider()
+    graph = build_investigation_graph(
+        InvestigationGraphDependencies(
+            llm_provider=FailingContextLLMProvider(),
+            evidence_adapter=EvidenceSearchAdapter(
+                provider=search_provider,
+                mode=EvidenceSearchMode.LIVE,
+                timeout_seconds=1,
+            ),
+            id_factory=lambda: "fallback-query-test",
+        )
+    )
+
+    state = run(
+        graph.ainvoke(
+            InvestigationRequest(
+                text=(
+                    "Bộ phận hỗ trợ thông báo tài khoản sắp bị khóa. "
+                    "Hãy gửi mã OTP trong vòng 10 phút để tiếp tục sử dụng."
+                ),
+                locale=Locale.VI,
+                use_web_search=True,
+            )
+        )
+    )
+
+    assert search_provider.calls
+    assert len(search_provider.calls) <= 3
+    assert any("OTP" in query for query, _ in search_provider.calls)
+    assert state.evidence_status is not None
+    assert state.evidence_status.mode is EvidenceSearchMode.LIVE
+    assert state.evidence_status.queries_attempted >= 1
+    assert state.evidence
+    assert not any(item.title.startswith("[MOCK]") for item in state.evidence)
 
 
 def _delayed_behavioral(probe: ConcurrencyProbe) -> Any:

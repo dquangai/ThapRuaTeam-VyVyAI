@@ -143,8 +143,6 @@ class FullInvestigationGraph:
             _add_warning(state, f"intake failed: {_safe_error_message(exc)}; using fallback.")
             state.intake = _fallback_intake(state.locale)
 
-        state.search_queries = state.intake.search_queries
-
         try:
             state.classification = await self._time_stage(
                 state,
@@ -162,6 +160,8 @@ class FullInvestigationGraph:
                 f"classification failed: {_safe_error_message(exc)}; using fallback.",
             )
             state.classification = _fallback_classification()
+
+        state.search_queries = _search_queries_for_state(state)
 
     async def _run_optional_enrichment_stage(self, state: InvestigationState) -> None:
         provider = self.dependencies.virustotal_provider
@@ -425,6 +425,193 @@ def _fallback_classification() -> ScamPatternClassification:
         primary_pattern=ScamPatternLabel.UNKNOWN,
         requires_immediate_warning=False,
     )
+
+
+def _search_queries_for_state(state: InvestigationState) -> list[str]:
+    queries: list[str] = []
+    seen: set[str] = set()
+
+    if state.intake is not None:
+        for query in state.intake.search_queries:
+            _append_query(queries, seen, query)
+            if len(queries) == 3:
+                return queries
+
+    for query in _deterministic_fallback_queries(state.input_text, state.classification):
+        _append_query(queries, seen, query)
+        if len(queries) == 3:
+            break
+
+    return queries
+
+
+def _deterministic_fallback_queries(
+    text: str,
+    classification: ScamPatternClassification | None,
+) -> list[str]:
+    normalized_text = _normalize_for_query(text)
+    labels = (
+        {pattern.label for pattern in classification.patterns}
+        if classification is not None
+        else set()
+    )
+    queries: list[str] = []
+
+    identifiers = _search_identifiers(text)
+    if identifiers:
+        queries.append(f"{identifiers[0]} cảnh báo lừa đảo")
+
+    if (
+        ScamPatternLabel.OTP_PASSWORD_REQUEST in labels
+        or "otp" in normalized_text
+        or "ma xac thuc" in normalized_text
+    ):
+        queries.append("cảnh báo lừa đảo yêu cầu mã OTP khóa tài khoản ngân hàng")
+        queries.append("không cung cấp mã OTP cảnh báo ngân hàng")
+
+    if (
+        ScamPatternLabel.ACCOUNT_LOCK_THREAT in labels
+        or "khoa tai khoan" in normalized_text
+    ):
+        queries.append("tin nhắn khóa tài khoản yêu cầu xác minh lừa đảo")
+
+    if (
+        ScamPatternLabel.URGENT_MONEY_TRANSFER in labels
+        or "chuyen tien" in normalized_text
+    ):
+        queries.append("cảnh báo lừa đảo chuyển tiền khẩn cấp")
+
+    if (
+        ScamPatternLabel.REMOTE_CONTROL_APP_REQUEST in labels
+        or "anydesk" in normalized_text
+        or "teamviewer" in normalized_text
+        or "remote" in normalized_text
+    ):
+        queries.append("cảnh báo lừa đảo cài ứng dụng điều khiển từ xa")
+
+    if (
+        ScamPatternLabel.RECRUITMENT_FEE in labels
+        or "viec lam" in normalized_text
+        or "tuyen dung" in normalized_text
+    ):
+        queries.append("cảnh báo lừa đảo tuyển dụng thu phí trước")
+
+    if (
+        ScamPatternLabel.PRIZE_OR_GIVEAWAY in labels
+        or "trung thuong" in normalized_text
+        or "giai thuong" in normalized_text
+    ):
+        queries.append("cảnh báo lừa đảo trúng thưởng yêu cầu nộp phí")
+
+    if (
+        ScamPatternLabel.INVESTMENT_RETURN_PROMISE in labels
+        or "loi nhuan" in normalized_text
+        or "dau tu" in normalized_text
+    ):
+        queries.append("cảnh báo lừa đảo đầu tư cam kết lợi nhuận")
+
+    if ScamPatternLabel.PHISHING_LINK in labels or "http://" in text or "https://" in text:
+        queries.append("cảnh báo đường link giả mạo đánh cắp tài khoản")
+
+    queries.append("cảnh báo lừa đảo trực tuyến Việt Nam")
+    return queries
+
+
+def _search_identifiers(text: str) -> list[str]:
+    identifiers: list[str] = []
+    for match in re.findall(r"https?://[^\s<>'\"]+", text):
+        identifiers.append(match.rstrip(".,;:!?)]}"))
+    for match in _DOMAIN_RE.findall(text.lower()):
+        identifiers.append(match)
+    return identifiers
+
+
+def _append_query(queries: list[str], seen: set[str], query: str) -> None:
+    cleaned = " ".join(query.strip().split())
+    if not cleaned:
+        return
+    if len(cleaned) > 140:
+        cleaned = cleaned[:140].rstrip(" ,.;:")
+    key = _normalize_for_query(cleaned)
+    if key in seen:
+        return
+    seen.add(key)
+    queries.append(cleaned)
+
+
+def _normalize_for_query(text: str) -> str:
+    replacements = str.maketrans(
+        {
+            "á": "a",
+            "à": "a",
+            "ả": "a",
+            "ã": "a",
+            "ạ": "a",
+            "ă": "a",
+            "ắ": "a",
+            "ằ": "a",
+            "ẳ": "a",
+            "ẵ": "a",
+            "ặ": "a",
+            "â": "a",
+            "ấ": "a",
+            "ầ": "a",
+            "ẩ": "a",
+            "ẫ": "a",
+            "ậ": "a",
+            "é": "e",
+            "è": "e",
+            "ẻ": "e",
+            "ẽ": "e",
+            "ẹ": "e",
+            "ê": "e",
+            "ế": "e",
+            "ề": "e",
+            "ể": "e",
+            "ễ": "e",
+            "ệ": "e",
+            "í": "i",
+            "ì": "i",
+            "ỉ": "i",
+            "ĩ": "i",
+            "ị": "i",
+            "ó": "o",
+            "ò": "o",
+            "ỏ": "o",
+            "õ": "o",
+            "ọ": "o",
+            "ô": "o",
+            "ố": "o",
+            "ồ": "o",
+            "ổ": "o",
+            "ỗ": "o",
+            "ộ": "o",
+            "ơ": "o",
+            "ớ": "o",
+            "ờ": "o",
+            "ở": "o",
+            "ỡ": "o",
+            "ợ": "o",
+            "ú": "u",
+            "ù": "u",
+            "ủ": "u",
+            "ũ": "u",
+            "ụ": "u",
+            "ư": "u",
+            "ứ": "u",
+            "ừ": "u",
+            "ử": "u",
+            "ữ": "u",
+            "ự": "u",
+            "ý": "y",
+            "ỳ": "y",
+            "ỷ": "y",
+            "ỹ": "y",
+            "ỵ": "y",
+            "đ": "d",
+        }
+    )
+    return text.casefold().translate(replacements)
 
 
 def _fallback_expert_assessment(role: ExpertRole, warning: str) -> ExpertAssessment:

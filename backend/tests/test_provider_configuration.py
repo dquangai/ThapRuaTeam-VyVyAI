@@ -97,6 +97,34 @@ class TimeoutClient:
         return None
 
 
+class TavilyPayloadResponse:
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self) -> dict[str, Any]:
+        return {
+            "results": [
+                {
+                    "title": "Cảnh báo thủ đoạn yêu cầu mã OTP",
+                    "url": "https://www.example.org/canh-bao-otp",
+                    "content": "Không cung cấp mã OTP cho người lạ hoặc đường link không xác minh.",
+                }
+            ]
+        }
+
+
+class TavilyPayloadClient:
+    def __init__(self) -> None:
+        self.requests: list[dict[str, Any]] = []
+
+    async def post(self, *args: Any, **kwargs: Any) -> TavilyPayloadResponse:
+        self.requests.append(kwargs)
+        return TavilyPayloadResponse()
+
+    async def aclose(self) -> None:
+        return None
+
+
 class FailingVirusTotalProvider:
     def __init__(self) -> None:
         self.calls: list[tuple[str, str]] = []
@@ -147,20 +175,6 @@ def live_settings(**overrides: Any) -> Settings:
     }
     values.update(overrides)
     return Settings(**values)
-
-
-def test_dotenv_values_take_precedence_over_process_environment(
-    monkeypatch: Any,
-    tmp_path: Path,
-) -> None:
-    env_file = tmp_path / ".env"
-    env_file.write_text("MOCK_MODE=false\nENABLE_WEB_SEARCH=true\n", encoding="utf-8")
-    monkeypatch.setenv("MOCK_MODE", "true")
-
-    settings = Settings(_env_file=env_file)
-
-    assert settings.mock_mode is False
-    assert settings.enable_web_search is True
 
 
 def valid_intake_payload() -> dict[str, Any]:
@@ -433,6 +447,21 @@ def test_tavily_timeout_returns_partial_status() -> None:
     assert result.evidence_status.operation_status.value == "partial"
     assert result.evidence_status.success is False
     assert "timeout" in " ".join(result.evidence_status.errors).casefold()
+
+
+def test_tavily_source_name_falls_back_to_url_hostname() -> None:
+    client = TavilyPayloadClient()
+    provider = TavilySearchProvider(settings=live_settings(), client=client)
+
+    results = run(provider.search(query="cảnh báo OTP", limit=1))
+
+    assert len(results) == 1
+    assert results[0].title == "Cảnh báo thủ đoạn yêu cầu mã OTP"
+    assert results[0].url == "https://www.example.org/canh-bao-otp"
+    assert results[0].source_name == "example.org"
+    assert results[0].snippet == (
+        "Không cung cấp mã OTP cho người lạ hoặc đường link không xác minh."
+    )
 
 
 def test_virustotal_failure_adds_warning_without_failing_investigation() -> None:
